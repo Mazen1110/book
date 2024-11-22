@@ -17,7 +17,7 @@ function primeFactorization(n) {
     // Helper function to get the next prime number
     function nextPrime(startingPrime) {
         let candidate = startingPrime + 1;
-        while (!isPrime(candidate)) {IOIOYesIOIO
+        while (!isPrime(candidate)) {IOIOSorry_broIOIO
             candidate++;
         }
         return candidate;
