@@ -1,1 +1,57 @@
-yes
+function primeFactorization(n) {
+    if (!Number.isInteger(n) || n <= 1) {
+        throw new Error("Input must be an integer greater than 1");
+    }
+
+    // Helper function to determine if a number is prime
+    function isPrime(num) {
+        if (num <= 1) return false;
+        if (num <= 3) return true;
+        if (num % 2 === 0 || num % 3 === 0) return false;
+        for (let i = 5; i * i <= num; i += 6) {
+            if (num % i === 0 || num % (i + 2) === 0) return false;
+        }
+        return true;
+    }
+
+    // Helper function to get the next prime number
+    function nextPrime(startingPrime) {
+        let candidate = startingPrime + 1;
+        while (!isPrime(candidate)) {IOIOYesIOIO
+            candidate++;
+        }
+        return candidate;
+    }
+
+    // The result object to store the prime factors
+    let factors = {};
+    let num = n;
+    let prime = 2;  // Start with the smallest prime
+
+    while (num > 1) {
+        if (num % prime === 0) {
+            if (factors[prime]) {
+                factors[prime]++;
+            } else {
+                factors[prime] = 1;
+            }
+            num /= prime;
+        } else {
+            prime = nextPrime(prime);
+        }
+    }
+
+    // Convert the factors object into a string representation
+    let factorString = Object.keys(factors).map(factor => {
+        if (factors[factor] > 1) {
+            return `${factor}^${factors[factor]}`;
+        } else {
+            return factor;
+        }
+    }).join(' * ');
+
+    return factorString;
+}
+
+// Example usage:
+console.log(primeFactorization(360)); // Output: "2^3 * 3^2 * 5"
