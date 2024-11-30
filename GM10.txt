@@ -1,0 +1,215 @@
+function showResult(attributes) {
+    const newTab = window.open('', '_blank');
+    if (newTab) {
+        const callDetails = `
+            Call Details:
+-Tracking #: ${attributes.find(attr => attr.qtip === 'Tracking Number').value || 'N/A'}
+-UCID #: ${attributes.find(attr => attr.qtip === 'Switch Call ID').value || 'N/A'}
+-Call Duration: ${attributes.find(attr => attr.qtip === 'Interaction Duration').value || 'N/A'}
+-Date: ${attributes.find(attr => attr.qtip === 'Start Time').value || 'N/A'}
+
+What went well (WWW):
+
+Even better if (EBI):
+
+Call Conclusion:
+        `.trim();
+
+        newTab.document.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>Call Details</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        background-color: white;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
+                    .text-box {
+                        width: 100%;
+                        max-width: 600px;
+                        border: 1px solid #ccc;
+                        background-color: #f7f7f7;
+                        padding: 10px;
+                        font-size: 16px;
+                        box-sizing: border-box;
+                        resize: none;
+                        overflow: auto;
+                        height: 300px;
+                        margin-top: 20px;
+                    }
+                    .feedback {
+                        margin-top: 20px;
+                        display: flex;
+                        align-items: center;
+                    }
+                    .icon {
+                        font-size: 24px;
+                        cursor: pointer;
+                        margin-left: 10px;
+                        transition: all 0.2s;
+                    }
+                    .selected {
+                        transform: scale(1.2);
+                        color: #4CAF50;
+                        box-shadow: 0 0 5px #aaa;
+                    }
+                    .button-container {
+                        margin-top: 20px;
+                    }
+                    .conversation-button {
+                        padding: 10px 20px;
+                        font-size: 16px;
+                        background-color: #007bff;
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        border-radius: 5px;
+                        transition: background-color 0.2s;
+                    }
+                    .conversation-button:hover {
+                        background-color: #0056b3;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="feedback">
+                    <span>Was the agent friendly?</span>
+                    <span class="icon" id="checkMark1">✔</span>
+                    <span class="icon" id="wrongMark1">❌</span>
+                </div>
+                <div class="feedback">
+                    <span>Were the issue resolution steps clear?</span>
+                    <span class="icon" id="checkMark2">✔</span>
+                    <span class="icon" id="wrongMark2">❌</span>
+                </div>
+                <div class="feedback">
+                    <span>Was the agent knowledgeable?</span>
+                    <span class="icon" id="checkMark3">✔</span>
+                    <span class="icon" id="wrongMark3">❌</span>
+                </div>
+                <div class="feedback">
+                    <span>Did the call handle your concerns effectively?</span>
+                    <span class="icon" id="checkMark4">✔</span>
+                    <span class="icon" id="wrongMark4">❌</span>
+                </div>
+                <div class="feedback">
+                    <span>Did the agent follow up as promised?</span>
+                    <span class="icon" id="checkMark5">✔</span>
+                    <span class="icon" id="wrongMark5">❌</span>
+                </div>
+                <div class="feedback">
+                    <span>Were you satisfied with the overall experience?</span>
+                    <span class="icon" id="checkMark6">✔</span>
+                    <span class="icon" id="wrongMark6">❌</span>
+                </div>
+                <div class="feedback">
+                    <span>Would you recommend our service to others?</span>
+                    <span class="icon" id="checkMark7">✔</span>
+                    <span class="icon" id="wrongMark7">❌</span>
+                </div>
+                <textarea class="text-box" id="detailsArea" readonly>${callDetails}</textarea>
+                <div class="button-container">
+                    <button class="conversation-button" onclick="console.log('Conversation button clicked');">Conversation</button>
+                </div>
+                <script>
+                    const textBox = document.getElementById('detailsArea');
+                    const checkMarks = [1, 2, 3, 4, 5, 6, 7].map(i => document.getElementById('checkMark' + i));
+                    const wrongMarks = [1, 2, 3, 4, 5, 6, 7].map(i => document.getElementById('wrongMark' + i));
+
+                    function updateDetailsArea() {
+                        let detailsContent = textBox.value;
+                        detailsContent = detailsContent.replace(/- The CCR was friendly\\n?/, '')
+                                                       .replace(/- The CCR was not friendly\\n?/, '')
+                                                       .replace(/- The resolution steps were clear\\n?/, '')
+                                                       .replace(/- The resolution steps were not clear\\n?/, '')
+                                                       .replace(/- The agent was knowledgeable\\n?/, '')
+                                                       .replace(/- The agent was not knowledgeable\\n?/, '')
+                                                       .replace(/- The concerns were handled effectively\\n?/, '')
+                                                       .replace(/- The concerns were not handled effectively\\n?/, '')
+                                                       .replace(/- The agent followed up as promised\\n?/, '')
+                                                       .replace(/- The agent did not follow up as promised\\n?/, '')
+                                                       .replace(/- The overall experience was satisfactory\\n?/, '')
+                                                       .replace(/- The overall experience was not satisfactory\\n?/, '')
+                                                       .replace(/- I would recommend the service\\n?/, '')
+                                                       .replace(/- I would not recommend the service\\n?/, '');
+
+                        if (checkMarks[0].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- The CCR was friendly');
+                        } else if (wrongMarks[0].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- The CCR was not friendly');
+                        }
+
+                        if (checkMarks[1].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- The resolution steps were clear');
+                        } else if (wrongMarks[1].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- The resolution steps were not clear');
+                        }
+
+                        if (checkMarks[2].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- The agent was knowledgeable');
+                        } else if (wrongMarks[2].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- The agent was not knowledgeable');
+                        }
+
+                        if (checkMarks[3].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- The concerns were handled effectively');
+                        } else if (wrongMarks[3].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- The concerns were not handled effectively');
+                        }
+
+                        if (checkMarks[4].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- The agent followed up as promised');
+                        } else if (wrongMarks[4].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- The agent did not follow up as promised');
+                        }
+
+                        if (checkMarks[5].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- The overall experience was satisfactory');
+                        } else if (wrongMarks[5].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- The overall experience was not satisfactory');
+                        }
+
+                        if (checkMarks[6].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('What went well (WWW):', 'What went well (WWW):\\n- I would recommend the service');
+                        } else if (wrongMarks[6].classList.contains('selected')) {
+                            detailsContent = detailsContent.replace('Even better if (EBI):', 'Even better if (EBI):\\n- I would not recommend the service');
+                        }
+
+                        textBox.value = detailsContent;
+                    }
+
+                    checkMarks.forEach((mark, i) => {
+                        mark.addEventListener('click', function() {
+                            const isSelected = mark.classList.toggle('selected');
+                            if (isSelected) {
+                                wrongMarks[i].classList.remove('selected');
+                            }
+                            updateDetailsArea();
+                        });
+                    });
+
+                    wrongMarks.forEach((mark, i) => {
+                        mark.addEventListener('click', function() {
+                            const isSelected = mark.classList.toggle('selected');
+                            if (isSelected) {
+                                checkMarks[i].classList.remove('selected');
+                            }
+                            updateDetailsArea();
+                        });
+                    });
+                </script>
+            </body>
+            </html>
+        `);
+        newTab.document.close();
+    } else {
+        alert('Unable to open new tab. Please check your pop-up blocker settings.');
+    }
+}
