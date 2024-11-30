@@ -1,34 +1,21 @@
-// ==UserScript==
-// @name         Remote Script Loader
-// @namespace    https://example.com
-// @version      1.0
-// @description  Load and execute a script from a remote source
-// @author       Your Name
-// @match        *://*/*
-// @grant        GM_xmlhttpRequest
-// @connect      raw.githubusercontent.com
-// ==/UserScript==
-
 (function() {
     'use strict';
 
-    // URL of the script you want to load
-    const scriptUrl = 'https://raw.githubusercontent.com/Mazen1110/book/refs/heads/main/GM.txt';
+    // Create a new button element
+    var button = document.createElement('button');
+    button.innerHTML = 'Click Me';
 
-    // Fetch the script using GM_xmlhttpRequest
-    GM_xmlhttpRequest({
-        method: 'GET',
-        url: scriptUrl,
-        onload: function(response) {
-            if (response.status === 200) {
-                // Execute the fetched script
-                eval(response.responseText);
-            } else {
-                console.error('Failed to load script:', response.status, response.statusText);
-            }
-        },
-        onerror: function() {
-            console.error('Error while trying to fetch the script');
-        }
-    });
+    // Style the button to position it in the upper right corner
+    button.style.position = 'fixed';
+    button.style.top = '10px';
+    button.style.right = '10px';
+    button.style.zIndex = 1000; // Make sure it appears over other elements
+
+    // Add click event listener that shows an alert
+    button.onclick = function() {
+        alert('clicked');
+    };
+
+    // Append the button to the body
+    document.body.appendChild(button);
 })();
