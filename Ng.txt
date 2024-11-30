@@ -16,11 +16,11 @@ you should be giving the response in the following format
 
 [Call Details:
 
-UCID: 0000***********
+UCID: IT IS THE NUMBER STARTING IN 0000
 Call Duration: **********
 Date/Time: ********
-Tracking Number: 1Z********
-Case #: C-*******
+Tracking Number: IT IS THE NUMBER STARTING 1Z********  DO NOT GET IT FROM THE TIME STAMPS BUT AT THE BEGINING / IF IT IS NOT THERE LEAVE IT EMPTY
+Case #: IT STARTS WITH C-******* IF IT IS NOT THERE LEAVE IT EMPTY
 Call Description: Summarize the main events of the call, highlighting the key information discussed, the representative's actions, and the customer's concerns. Include details of any package issues, escalations, or follow-up steps.
 
 What Went Well (WWW): Identify areas where the representative adhered to UPS procedures, such as:
