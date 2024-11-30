@@ -1,0 +1,203 @@
+(function() {
+    'use strict';
+
+    // Create a new "Click Me" button element
+    var button = document.createElement('button');
+    button.innerHTML = 'Click Me';
+
+    // Style the button to position it in the upper right corner
+    button.style.position = 'fixed';
+    button.style.top = '10px';
+    button.style.right = '10px';
+    button.style.zIndex = 1000; // Ensure it appears over other elements
+
+    // Add click event listener that triggers the extractValues function
+    button.onclick = function() {
+        extractValues();
+    };
+
+    // Append the button to the body
+    document.body.appendChild(button);
+
+    function extractValues() {
+        const attributes = [
+            { qtip: 'Interaction Duration', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Tracking Number', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Start Time', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Switch Call ID', found: false, value: '', tooltipClass: '.showtooltip' },
+        ];
+
+        attributes.forEach(attribute => {
+            const elements = document.querySelectorAll(`[data-qtip="${attribute.qtip}"]`);
+            elements.forEach(element => {
+                const tooltipElement = element.closest('tr').querySelector(attribute.tooltipClass);
+                if (tooltipElement) {
+                    attribute.value = tooltipElement.getAttribute('tooltip');
+                    attribute.found = true;
+                }
+            });
+        });
+
+        showResult(attributes);
+    }
+
+    function extractTranscriptions() {
+        // Locate the specific table
+        var table = document.getElementById('ext-element-1275');
+        var dialogues = [];
+
+        if (table) {
+            var rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                var speakerType = row.querySelector('td:nth-child(2) div');
+                var textDivs = row.querySelectorAll('td:nth-child(3) div.transcript');
+
+                var sentence = Array.from(textDivs).map(div => div.textContent.trim()).join(' ');
+
+                if (speakerType.classList.contains('transcriptionSpeakerAgent')) {
+                    dialogues.push('CCR: ' + sentence);
+                } else if (speakerType.classList.contains('transcriptionSpeakerCustomer')) {
+                    dialogues.push('Cx: ' + sentence);
+                }
+            });
+        } else {
+            console.error('Table with id "ext-element-1275" not found.');
+        }
+
+        return dialogues.join('\n');
+    }
+
+    function showResult(attributes) {
+        const newTab = window.open('', '_blank');
+        if (newTab) {
+            const callDetails = `
+                Call Details:
+-Tracking #: ${attributes.find(attr => attr.qtip === 'Tracking Number').value || 'N/A'}
+-UCID #: ${attributes.find(attr => attr.qtip === 'Switch Call ID').value || 'N/A'}
+-Call Duration: ${attributes.find(attr => attr.qtip === 'Interaction Duration').value || 'N/A'}
+-Date: ${attributes.find(attr => attr.qtip === 'Start Time').value || 'N/A'}
+
+What went well (WWW):
+
+Even better if (EBI):
+
+Call Conclusion:
+            `.trim();
+
+            newTab.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Call Details</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            background-color: white;
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .text-box {
+                            width: 100%;
+                            max-width: 600px;
+                            border: 1px solid #ccc;
+                            background-color: #f7f7f7;
+                            padding: 10px;
+                            font-size: 16px;
+                            box-sizing: border-box;
+                            resize: none;
+                            overflow: auto;
+                            height: 300px;
+                            margin-top: 20px;
+                        }
+                        .button {
+                            padding: 10px 20px;
+                            background-color: #4CAF50;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            margin-top: 10px;
+                        }
+                        .button:hover {
+                            background-color: #45a049;
+                        }
+                        .feedback {
+                            margin-top: 20px;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .icon {
+                            font-size: 24px;
+                            cursor: pointer;
+                            margin-left: 10px;
+                            transition: all 0.2s;
+                        }
+                        .selected {
+                            transform: scale(1.2);
+                            color: #4CAF50;
+                            box-shadow: 0 0 5px #aaa;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Call Details</h1>
+                    <textarea class="text-box" id="detailsArea" readonly>${callDetails}</textarea>
+                    <button class="button" id="conversationButton">Conversation</button>
+                    <div class="feedback">
+                        <span>Was the agent friendly?</span>
+                        <span class="icon" id="checkMark1">✔️</span>
+                        <span class="icon" id="wrongMark1">❌</span>
+                    </div>
+                    <script>
+                        document.getElementById('conversationButton').addEventListener('click', function() {
+                            const conversationWindow = window.open('', '_blank', 'width=600,height=400');
+                            const conversation = \`${extractTranscriptions()}\`;
+                            conversationWindow.document.write('<pre style="font-family: Arial, sans-serif; padding: 20px;">' + conversation + '</pre>');
+                            conversationWindow.document.close();
+                        });
+
+                        const checkMarks = [1, 2, 3, 4, 5, 6, 7].map(i => document.getElementById('checkMark' + i));
+                        const wrongMarks = [1, 2, 3, 4, 5, 6, 7].map(i => document.getElementById('wrongMark' + i));
+
+                        function updateDetailsArea() {
+                            let detailsContent = document.getElementById('detailsArea').value;
+                            detailsContent = detailsContent.replace(/- The CCR was friendly\\n?/, '')
+                                                           .replace(/- The CCR was not friendly\\n?/, '');
+                            if (checkMarks[0].classList.contains('selected')) {
+                                detailsContent += '- The CCR was friendly';
+                            } else if (wrongMarks[0].classList.contains('selected')) {
+                                detailsContent += '- The CCR was not friendly';
+                            }
+                            document.getElementById('detailsArea').value = detailsContent;
+                        }
+
+                        checkMarks.forEach((mark, i) => {
+                            mark.addEventListener('click', function() {
+                                const isSelected = mark.classList.toggle('selected');
+                                if (isSelected) {
+                                    wrongMarks[i].classList.remove('selected');
+                                }
+                                updateDetailsArea();
+                            });
+                        });
+
+                        wrongMarks.forEach((mark, i) => {
+                            mark.addEventListener('click', function() {
+                                const isSelected = mark.classList.toggle('selected');
+                                if (isSelected) {
+                                    checkMarks[i].classList.remove('selected');
+                                }
+                                updateDetailsArea();
+                            });
+                        });
+                    </script>
+                </body>
+                </html>
+            `);
+            newTab.document.close();
+        } else {
+            alert('Unable to open new tab. Please check your pop-up blocker settings.');
+        }
+    }
+})();
