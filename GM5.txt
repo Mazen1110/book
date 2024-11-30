@@ -1,0 +1,81 @@
+(function() {
+    'use strict';
+
+    // Create a new button element
+    var button = document.createElement('button');
+    button.innerHTML = 'Click Me';
+
+    // Style the button to position it in the upper right corner
+    button.style.position = 'fixed';
+    button.style.top = '10px';
+    button.style.right = '10px';
+    button.style.zIndex = 1000; // Ensure it appears over other elements
+
+    // Add click event listener that triggers the extractValues function
+    button.onclick = function() {
+        extractValues();
+    };
+
+    // Append the button to the body
+    document.body.appendChild(button);
+
+    function extractValues() {
+        const attributes = [
+            { qtip: 'Interaction Duration', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Tracking Number', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Start Time', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Switch Call ID', found: false, value: '', tooltipClass: '.showtooltip' },
+        ];
+
+        attributes.forEach(attribute => {
+            const elements = document.querySelectorAll(`[data-qtip="${attribute.qtip}"]`);
+            elements.forEach(element => {
+                const tooltipElement = element.closest('tr').querySelector(attribute.tooltipClass);
+                if (tooltipElement) {
+                    attribute.value = tooltipElement.getAttribute('tooltip');
+                    attribute.found = true;
+                }
+            });
+        });
+
+        showResult(attributes);
+    }
+
+    function showResult(attributes) {
+        const newTab = window.open('', '_blank');
+        if (newTab) {
+            const callDetails = `
+                Call Details:
+-Tracking #: ${attributes.find(attr => attr.qtip === 'Tracking Number').value || 'N/A'}
+-UCID #: ${attributes.find(attr => attr.qtip === 'Switch Call ID').value || 'N/A'}
+-Call Duration: ${attributes.find(attr => attr.qtip === 'Interaction Duration').value || 'N/A'}
+-Date: ${attributes.find(attr => attr.qtip === 'Start Time').value || 'N/A'}
+
+What went well (WWW):
+
+Even better if (EBI):
+
+Call Conclusion:
+            `.trim();
+
+            newTab.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Call Details</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; background-color: white; margin: 0; padding: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <textarea style="width: 100%; height: 300px;">${callDetails}</textarea>
+                </body>
+                </html>
+            `);
+            newTab.document.close();
+        } else {
+            alert('Unable to open new tab. Please check your pop-up blocker settings.');
+        }
+    }
+})();
