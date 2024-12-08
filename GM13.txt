@@ -1,34 +1,38 @@
 (function() {
     'use strict';
 
-    // Create a new button element
-    var button = document.createElement('button');
-    button.innerHTML = 'Click Me';
+    function addButton() {
+        if (document.getElementById('extractValuesButton')) return;
 
-    // Style the button to position it in the upper right corner
-    button.style.position = 'fixed';
-    button.style.top = '10px';
-    button.style.right = '10px';
-    button.style.zIndex = 1000; // Ensure it appears over other elements
+        const button = document.createElement('button');
+        button.id = 'extractValuesButton';
+        button.textContent = 'Get Attribute Values';
+        button.style.position = 'fixed';
+        button.style.top = '10px';
+        button.style.right = '10px';
+        button.style.zIndex = '1000';
+        button.style.padding = '10px';
+        button.style.backgroundColor = '#4CAF50';
+        button.style.color = 'white';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
 
-    // Add click event listener that triggers the extractValues function
-    button.onclick = function() {
-        extractValues();
-    };
-
-    // Append the button to the body
-    document.body.appendChild(button);
+        document.body.appendChild(button);
+        button.addEventListener('click', extractValues);
+    }
 
     function extractValues() {
         const attributes = [
             { qtip: 'Interaction Duration', found: false, value: '', tooltipClass: '.showtooltip' },
             { qtip: 'Tracking Number', found: false, value: '', tooltipClass: '.showtooltip' },
-            { qtip: 'Start Time', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Local Start Time', found: false, value: '', tooltipClass: '.showtooltip' },
             { qtip: 'Switch Call ID', found: false, value: '', tooltipClass: '.showtooltip' },
+            { qtip: 'Case', found: false, value: '', tooltipClass: '.showtooltip' }
         ];
 
         attributes.forEach(attribute => {
-            const elements = document.querySelectorAll([data-qtip="${attribute.qtip}"]);
+            const elements = document.querySelectorAll(`[data-qtip="${attribute.qtip}"]`);
             elements.forEach(element => {
                 const tooltipElement = element.closest('tr').querySelector(attribute.tooltipClass);
                 if (tooltipElement) {
@@ -38,44 +42,325 @@
             });
         });
 
-        showResult(attributes);
+        const conversation = extractTranscriptions();
+        getNewApiKeyAndSendQuestion(conversation, (conclusion) => {
+            showOverlay(attributes, conclusion);
+        });
     }
 
-    function showResult(attributes) {
-        const newTab = window.open('', '_blank');
-        if (newTab) {
-            const callDetails = `
-                Call Details:
--Tracking #: ${attributes.find(attr => attr.qtip === 'Tracking Number').value || 'N/A'}
--UCID #: ${attributes.find(attr => attr.qtip === 'Switch Call ID').value || 'N/A'}
--Call Duration: ${attributes.find(attr => attr.qtip === 'Interaction Duration').value || 'N/A'}
--Date: ${attributes.find(attr => attr.qtip === 'Start Time').value || 'N/A'}
+    function extractTranscriptions() {
+        const tables = document.querySelectorAll('table'); // Select all tables
+        const dialogues = [];
+
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const speakerType = row.querySelector('td:nth-child(2) div');
+                const textDivs = row.querySelectorAll('td:nth-child(3) div.transcript');
+
+                if (speakerType && textDivs.length > 0) {
+                    const sentence = Array.from(textDivs).map(div => div.textContent.trim()).join(' ');
+
+                    if (speakerType.classList.contains('transcriptionSpeakerAgent')) {
+                        dialogues.push('CCR: ' + sentence);
+                    } else if (speakerType.classList.contains('transcriptionSpeakerCustomer')) {
+                        dialogues.push('Cx: ' + sentence);
+                    }
+                }
+            });
+        });
+
+        if (dialogues.length === 0) {
+            console.error('No suitable tables found or tables contained no valid transcriptions.');
+        }
+
+        return dialogues.join('\n');
+    }
+
+    function showOverlay(attributes, conclusion) {
+        const overlay = document.createElement('div');
+        overlay.id = 'callDetailsOverlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        overlay.style.zIndex = '10000';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+
+        const contentWrapper = document.createElement('div');
+        contentWrapper.style.backgroundColor = '#fff';
+        contentWrapper.style.borderRadius = '8px';
+        contentWrapper.style.width = '80%';
+        contentWrapper.style.padding = '20px';
+        contentWrapper.style.overflowY = 'auto';
+        contentWrapper.style.maxHeight = '85%';
+
+        const resetButton = document.createElement('button');
+        resetButton.textContent = 'Reset';
+        resetButton.style.marginTop = '10px';
+        resetButton.style.backgroundColor = '#f44336';
+        resetButton.style.color = 'white';
+        resetButton.style.border = 'none';
+        resetButton.style.padding = '10px';
+        resetButton.style.borderRadius = '5px';
+        resetButton.style.cursor = 'pointer';
+        resetButton.addEventListener('click', () => {
+            textArea.value = callDetailsTemplate;
+            document.querySelectorAll('input[type="radio"]').forEach((input) => {
+                input.checked = false;
+            });
+        });
+
+        const callDetailsTemplate = `
+Call Details:
+   -Case #: ${attributes.find(attr => attr.qtip === 'Case').value || 'N/A'}
+   -Tracking #: ${attributes.find(attr => attr.qtip === 'Tracking Number').value || 'N/A'}
+   -UCID #: ${attributes.find(attr => attr.qtip === 'Switch Call ID').value || 'N/A'}
+   -Call Duration: ${attributes.find(attr => attr.qtip === 'Interaction Duration').value || 'N/A'}
+   -Date: ${attributes.find(attr => attr.qtip === 'Local Start Time').value || 'N/A'}
+
+Call Description:
+${conclusion || ''}
 
 What went well (WWW):
 
 Even better if (EBI):
+        `.trim();
 
-Call Conclusion:
-            `.trim();
+        const textArea = document.createElement('textarea');
+        textArea.style.width = '100%';
+        textArea.style.height = '300px';
+        textArea.style.border = '1px solid #ccc';
+        textArea.style.borderRadius = '4px';
+        textArea.style.padding = '10px';
+        textArea.style.boxSizing = 'border-box';
+        textArea.style.fontFamily = 'Arial, sans-serif';
+        textArea.style.whiteSpace = 'pre-wrap'; // Preserve white spaces and line breaks
+        textArea.value = callDetailsTemplate;
+        textArea.readOnly = true;
 
-            newTab.document.write(`
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Call Details</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; background-color: white; margin: 0; padding: 20px; }
-                    </style>
-                </head>
-                <body>
-                    <textarea style="width: 100%; height: 300px;">${callDetails}</textarea>
-                </body>
-                </html>
-            `);
-            newTab.document.close();
-        } else {
-            alert('Unable to open new tab. Please check your pop-up blocker settings.');
-        }
+        const questions = [
+            {
+                question: 'Verification',
+                trueText: 'The CCR did verify the address correctly.',
+                falseText: "The CCR didn't verify the address."
+            },
+            {
+                question: 'Friendly/Tone',
+                trueText: 'CCR was friendly and had a pleasant tone of voice, making the interaction enjoyable.',
+                falseText: 'CCR had a cold and monotonic tone.'
+            },
+            {
+                question: 'Confidence/Clear',
+                trueText: 'CCR demonstrated strong confidence, providing clear and assured guidance throughout our conversation.',
+                falseText: 'CCR appeared uncertain and lacked confidence, which made it difficult to trust the information provided.'
+            },
+            {
+                question: 'Empathy',
+                trueText: 'CCR displayed excellent empathy and understanding, making the customer feel heard and valued.',
+                falseText: 'CCR lacked empathy and seemed indifferent to customer concerns, leaving the customer feeling unheard.'
+            },
+            {
+                question: 'Knowledge',
+                trueText: 'CCR demonstrated excellent knowledge and provided insightful and accurate information to address customer concerns.',
+                falseText: 'CCR seemed to lack the necessary knowledge to effectively address the issue, resulting in incomplete or incorrect information.'
+            },
+            {
+                question: 'Resolution',
+                trueText: 'CCR did offer all available and alternative resolutions.',
+                falseText: "CCR didn't provide all alternative resolutions."
+            },
+            {
+                question: 'Case Documentation',
+                trueText: 'CCR documented the case on the CEC accurately, with the customer\'s name & correct case category and subcategory.',
+                falseText: 'CCR did not document the case properly.'
+            },
+            {
+                question: 'AR Case',
+                trueText: 'CCR did escalate the case properly to the dispatch team with the correct urgency and incident location.',
+                falseText: "CCR didn't send a proper AR case which could lead to issues in incident processing."
+            },
+            {
+                question: 'Hold',
+                trueText: 'CCR was efficient with little to no hold time.',
+                falseText: 'CCR placed the call on hold and exceeded the hold time multiple times with no valid reason, which could lead to corporate concerns.'
+            }
+        ];
+
+        const updateTextArea = () => {
+            let detailsContent = callDetailsTemplate; // Start fresh each time
+
+            let wwwList = [];
+            let ebiList = [];
+
+            questions.forEach((q, index) => {
+                const trueChoice = contentWrapper.querySelector(`#trueChoice${index}`).checked;
+                const falseChoice = contentWrapper.querySelector(`#falseChoice${index}`).checked;
+
+                if (trueChoice) {
+                    wwwList.push(`- ${q.trueText}`);
+                } else if (falseChoice) {
+                    ebiList.push(`- ${q.falseText}`);
+                }
+            });
+
+            detailsContent = detailsContent.replace('What went well (WWW):', `What went well (WWW):\n${wwwList.join('\n')}`);
+            detailsContent = detailsContent.replace('Even better if (EBI):', `Even better if (EBI):\n${ebiList.join('\n')}`);
+
+            textArea.value = detailsContent;
+        };
+
+        questions.forEach((q, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.style.marginTop = '10px';
+            questionDiv.style.color = '#333'; // Dark font color
+
+            const questionText = document.createElement('strong');
+            questionText.textContent = q.question;
+            questionDiv.appendChild(questionText);
+
+            const trueLabel = document.createElement('label');
+            trueLabel.textContent = 'True';
+            trueLabel.style.marginLeft = '5px';
+            const trueInput = document.createElement('input');
+            trueInput.type = 'radio';
+            trueInput.name = `radio${index}`;
+            trueInput.id = `trueChoice${index}`;
+            trueInput.style.marginLeft = '5px';
+
+            const falseLabel = document.createElement('label');
+            falseLabel.textContent = 'False';
+            falseLabel.style.marginLeft = '5px';
+            const falseInput = document.createElement('input');
+            falseInput.type = 'radio';
+            falseInput.name = `radio${index}`;
+            falseInput.id = `falseChoice${index}`;
+            falseInput.style.marginLeft = '5px';
+
+            trueInput.addEventListener('change', function() {
+                if (trueInput.checked) {
+                    falseInput.checked = false;
+                }
+                updateTextArea();
+            });
+
+            falseInput.addEventListener('change', function() {
+                if (falseInput.checked) {
+                    trueInput.checked = false;
+                }
+                updateTextArea();
+            });
+
+            questionDiv.appendChild(trueInput);
+            questionDiv.appendChild(trueLabel);
+            questionDiv.appendChild(falseInput);
+            questionDiv.appendChild(falseLabel);
+            contentWrapper.appendChild(questionDiv);
+        });
+
+        contentWrapper.appendChild(textArea);
+        contentWrapper.appendChild(resetButton);
+        overlay.appendChild(contentWrapper);
+        document.body.appendChild(overlay);
+
+        // Close overlay when clicking outside of content
+        overlay.addEventListener('click', (event) => {
+            if (!contentWrapper.contains(event.target)) {
+                document.body.removeChild(overlay);
+            }
+        });
     }
+
+    function generateRandomDeviceId() {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let deviceId = '';
+        for (let i = 0; i < 16; i++) {
+            deviceId += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return deviceId;
+    }
+
+    function getNewApiKeyAndSendQuestion(question, callback) {
+        const randomDeviceId = generateRandomDeviceId();
+
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: 'https://api.vulcanlabs.co/smith-auth/api/v1/token',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json; charset=utf-8',
+            },
+            data: JSON.stringify({
+                device_id: randomDeviceId,
+                order_id: '',
+                product_id: '',
+                purchase_token: '',
+                subscription_id: '',
+            }),
+            onload: function (response) {
+                try {
+                    const data = JSON.parse(response.responseText);
+                    sendQuestionToChatSmith(question, data.AccessToken, callback);
+                } catch (error) {
+                    console.error('Error getting or using API key:', error);
+                    alert('Error getting or using API key. Check the console for details.');
+                }
+            },
+            onerror: function (error) {
+                console.error('Error getting new API key:', error);
+                alert('Error getting new API key. Check the console for details.');
+            },
+        });
+    }
+
+    function sendQuestionToChatSmith(question, apiKey, callback) {
+        const messages = [
+            { role: 'system', content: 'you will be receiving inaccurate transcript between UPS CCR and Cx , you need to provide brief description for the whole conversation, it need to be short description in simple english in about 40 words' },
+            { role: 'user', content: question }
+        ];
+
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: 'https://api.vulcanlabs.co/smith-v2/api/v7/chat_android',
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                Accept: 'application/json',
+                'User-Agent': 'Chat Smith Android, Version 3.9.2(655)',
+                'Content-Type': 'application/json; charset=utf-8',
+            },
+            data: JSON.stringify({
+                messages: messages,
+                model: 'gpt-4o',
+                user: '',
+            }),
+            onload: function (response) {
+                try {
+                    const data = JSON.parse(response.responseText);
+
+                    if (data && data.choices && data.choices.length > 0) {
+                        const content = data.choices[0].Message.content;
+                        callback(content);
+                    } else {
+                        throw new Error('Invalid response structure.');
+                    }
+
+                } catch (error) {
+                    console.error('Error processing response from Chat Smith:', error);
+                    alert('Error processing response from Chat Smith. Check the console for details.');
+                }
+            },
+            onerror: function (error) {
+                console.error('Error sending request to Chat Smith:', error);
+                alert('Error communicating with Chat Smith. Check the console for details.');
+            },
+        });
+    }
+
+    window.addEventListener('load', addButton);
 })();
